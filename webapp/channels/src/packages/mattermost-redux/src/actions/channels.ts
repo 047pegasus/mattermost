@@ -1063,7 +1063,7 @@ export function searchGroupChannels(term: string): ActionFunc {
     });
 }
 
-export function getChannelStats(channelId: string, excludeFilesCount?: boolean): ActionFunc {
+export function getChannelStats(channelId: string, excludeFilesCount = true): ActionFunc {
     return async (dispatch: DispatchFunc, getState: GetStateFunc) => {
         let stat;
         try {

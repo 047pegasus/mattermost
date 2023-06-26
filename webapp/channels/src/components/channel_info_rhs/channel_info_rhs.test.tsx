@@ -3,7 +3,7 @@
 
 import React from 'react';
 
-import {act, renderWithIntl} from 'tests/react_testing_utils';
+import {renderWithIntl} from 'tests/react_testing_utils';
 
 import {Channel, ChannelStats} from '@mattermost/types/channels';
 import {UserProfile} from '@mattermost/types/users';
@@ -41,7 +41,6 @@ describe('channel_info_rhs', () => {
             showChannelFiles: jest.fn(),
             showPinnedPosts: jest.fn(),
             showChannelMembers: jest.fn(),
-            getChannelStats: jest.fn().mockImplementation(() => Promise.resolve({data: {}})),
         },
     };
     let props = {...OriginalProps};
@@ -51,16 +50,12 @@ describe('channel_info_rhs', () => {
     });
 
     describe('about area', () => {
-        test('should be editable', async () => {
+        test('should be editable', () => {
             renderWithIntl(
                 <ChannelInfoRHS
                     {...props}
                 />,
             );
-
-            await act(async () => {
-                props.actions.getChannelStats();
-            });
 
             expect(mockAboutArea).toHaveBeenCalledWith(
                 expect.objectContaining({
@@ -68,7 +63,7 @@ describe('channel_info_rhs', () => {
                 }),
             );
         });
-        test('should not be editable in archived channel', async () => {
+        test('should not be editable in archived channel', () => {
             props.isArchived = true;
 
             renderWithIntl(
@@ -76,10 +71,6 @@ describe('channel_info_rhs', () => {
                     {...props}
                 />,
             );
-
-            await act(async () => {
-                props.actions.getChannelStats();
-            });
 
             expect(mockAboutArea).toHaveBeenCalledWith(
                 expect.objectContaining({
