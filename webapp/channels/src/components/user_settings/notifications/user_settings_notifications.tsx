@@ -3,8 +3,8 @@
 
 /* eslint-disable max-lines */
 
-import React, {ChangeEvent, RefObject} from 'react';
-import {FormattedMessage} from 'react-intl';
+import React, {ChangeEvent, ReactNode, RefObject} from 'react';
+import {FormattedMessage, IntlShape, injectIntl} from 'react-intl';
 
 import {ActionResult} from 'mattermost-redux/types/actions';
 
@@ -37,6 +37,7 @@ export type Props = {
     };
     isCollapsedThreadsEnabled: boolean;
     isCallsRingingEnabled: boolean;
+    intl: IntlShape;
 }
 
 type State = {
@@ -187,7 +188,7 @@ function getNotificationsStateFromProps(props: Props): State {
     };
 }
 
-export default class NotificationsTab extends React.PureComponent<Props, State> {
+class NotificationsTab extends React.PureComponent<Props, State> {
     customCheckRef: RefObject<HTMLInputElement>;
     customMentionsRef: RefObject<HTMLInputElement>;
     drawerRef: RefObject<HTMLHeadingElement>;
@@ -629,10 +630,10 @@ export default class NotificationsTab extends React.PureComponent<Props, State> 
         );
     };
 
-    createKeysSection = () => {
+    createKeywordsWithNotificationSection = () => {
         const serverError = this.state.serverError;
         const user = this.props.user;
-        const active = this.props.activeSection === 'keys';
+        const active = this.props.activeSection === 'keysWithNotification';
 
         let max = null;
         if (active) {
@@ -740,8 +741,8 @@ export default class NotificationsTab extends React.PureComponent<Props, State> 
             const extraInfo = (
                 <span>
                     <FormattedMessage
-                        id='user.settings.notifications.mentionsInfo'
-                        defaultMessage='Mentions trigger when someone sends a message that includes your username (@{username}) or any of the options selected above.'
+                        id='user.settings.notifications.keywordsWithNotification.extraInfo'
+                        defaultMessage='Notifications get triggered when someone sends a message that includes your username ("@{username}") or any of the options selected above.'
                         values={{
                             username: user.username,
                         }}
@@ -751,7 +752,7 @@ export default class NotificationsTab extends React.PureComponent<Props, State> 
 
             max = (
                 <SettingItemMax
-                    title={localizeMessage('user.settings.notifications.wordsTrigger', 'Words That Trigger Mentions')}
+                    title={this.props.intl.formatMessage({id: 'user.settings.notifications.keywordsWithNotification.title', defaultMessage: 'Keywords that trigger Notifications'})}
                     inputs={inputs}
                     submit={this.handleSubmit}
                     saving={this.state.isSaving}
@@ -791,23 +792,104 @@ export default class NotificationsTab extends React.PureComponent<Props, State> 
         } else {
             describe = (
                 <FormattedMessage
-                    id='user.settings.notifications.noWords'
-                    defaultMessage='No words configured'
+                    id='user.settings.notifications.keywordsWithNotification.describe.none'
+                    defaultMessage='No keywords configured'
                 />
             );
         }
 
         return (
             <SettingItem
+                title={this.props.intl.formatMessage({id: 'user.settings.notifications.keywordsWithNotification.title', defaultMessage: 'Keywords that trigger Notifications'})}
+                section='keysWithNotification'
                 active={active}
                 areAllSectionsInactive={this.props.activeSection === ''}
-                title={localizeMessage('user.settings.notifications.wordsTrigger', 'Words That Trigger Mentions')}
                 describe={describe}
-                section={'keys'}
                 updateSection={this.handleUpdateSection}
                 max={max}
-
             />);
+    };
+
+    createKeywordsWithHighlightSection = () => {
+        const isSectionExpanded = this.props.activeSection === 'keysWithHighlight';
+
+        let expandedSection = null;
+        if (isSectionExpanded) {
+            const inputs = (
+                <div key='userNotificationCustomOption'>
+                    <label htmlFor='keywordsWithHighlightInput'>
+                        <FormattedMessage
+                            id='user.settings.notifications.keywordsWithHighlight.inputLabel'
+                            defaultMessage='Enter keywords separated by commas'
+                        />
+                    </label>
+                    <input
+                        id='keywordsWithHighlightInput'
+                        name='TODO__state-name'
+                        aria-labelledby='notificationTriggerCustom'
+                        autoFocus={true}
+                        className='form-control mentions-input'
+                        type='text'
+                        onFocus={moveCursorToEnd}
+
+                        // defaultValue={this.state.customKeys}
+                        // onChange={this.onCustomChange}
+                    />
+                </div>
+            );
+
+            const extraInfo = (
+                <span>
+                    <FormattedMessage
+                        id='user.settings.notifications.keywordsWithHighlight.extraInfo'
+                        defaultMessage='These keywords will get be shown to you with a highlight when anyone sends a message that includes them.'
+                    />
+                </span>
+            );
+
+            expandedSection = (
+                <SettingItemMax
+                    title={this.props.intl.formatMessage({
+                        id: 'user.settings.notifications.keywordsWithHighlight.title',
+                        defaultMessage:
+                            'Keywords That Get Highlighted (without notifications)',
+                    })}
+                    inputs={inputs}
+                    submit={this.handleSubmit}
+                    saving={this.state.isSaving}
+                    serverError={this.state.serverError}
+                    extraInfo={extraInfo}
+                    updateSection={this.handleUpdateSection}
+                />
+            );
+        }
+
+        // TODO
+        const highlightKeys = '';
+
+        let collapsedDescription: ReactNode = '';
+        if (highlightKeys.length > 0) {
+            collapsedDescription = highlightKeys.split(',').join(', ');
+        } else {
+            collapsedDescription = (
+                <FormattedMessage
+                    id='user.settings.notifications.keywordsWithHighlight.describe.none'
+                    defaultMessage='No keywords configured'
+                />
+            );
+        }
+
+        return (
+            <SettingItem
+                title={this.props.intl.formatMessage({id: 'user.settings.notifications.keywordsWithHighlight.title', defaultMessage: 'Keywords That Get Highlighted (without notifications)'})}
+                section='keysWithHighlight'
+                active={isSectionExpanded}
+                areAllSectionsInactive={this.props.activeSection === ''}
+                describe={collapsedDescription}
+                updateSection={this.handleUpdateSection}
+                max={expandedSection}
+            />
+        );
     };
 
     createCommentsSection = () => {
@@ -942,59 +1024,55 @@ export default class NotificationsTab extends React.PureComponent<Props, State> 
     };
 
     createAutoResponderSection = () => {
-        if (this.props.enableAutoResponder) {
-            const describe = this.state.autoResponderActive ? (
-                <FormattedMessage
-                    id='user.settings.notifications.autoResponderEnabled'
-                    defaultMessage='Enabled'
-                />
-            ) : (
-                <FormattedMessage
-                    id='user.settings.notifications.autoResponderDisabled'
-                    defaultMessage='Disabled'
-                />
-            );
+        const describe = this.state.autoResponderActive ? (
+            <FormattedMessage
+                id='user.settings.notifications.autoResponderEnabled'
+                defaultMessage='Enabled'
+            />
+        ) : (
+            <FormattedMessage
+                id='user.settings.notifications.autoResponderDisabled'
+                defaultMessage='Disabled'
+            />
+        );
 
-            return (
-                <SettingItem
-                    active={this.props.activeSection === 'auto-responder'}
-                    areAllSectionsInactive={this.props.activeSection === ''}
-                    title={
-                        <FormattedMessage
-                            id='user.settings.notifications.autoResponder'
-                            defaultMessage='Automatic Direct Message Replies'
+        return (
+            <SettingItem
+                active={this.props.activeSection === 'auto-responder'}
+                areAllSectionsInactive={this.props.activeSection === ''}
+                title={
+                    <FormattedMessage
+                        id='user.settings.notifications.autoResponder'
+                        defaultMessage='Automatic Direct Message Replies'
+                    />
+                }
+                describe={describe}
+                section={'auto-responder'}
+                updateSection={this.handleUpdateSection}
+                max={(
+                    <div>
+                        <ManageAutoResponder
+                            autoResponderActive={this.state.autoResponderActive}
+                            autoResponderMessage={this.state.autoResponderMessage || ''}
+                            updateSection={this.handleUpdateSection}
+                            setParentState={this.setStateValue}
+                            submit={this.handleSubmit}
+                            error={this.state.serverError}
+                            saving={this.state.isSaving}
                         />
-                    }
-                    describe={describe}
-                    section={'auto-responder'}
-                    updateSection={this.handleUpdateSection}
-                    max={(
-                        <div>
-                            <ManageAutoResponder
-                                autoResponderActive={this.state.autoResponderActive}
-                                autoResponderMessage={this.state.autoResponderMessage || ''}
-                                updateSection={this.handleUpdateSection}
-                                setParentState={this.setStateValue}
-                                submit={this.handleSubmit}
-                                error={this.state.serverError}
-                                saving={this.state.isSaving}
-                            />
-                            <div className='divider-dark'/>
-                        </div>
-                    )}
-                />
-            );
-        }
-
-        return null;
+                        <div className='divider-dark'/>
+                    </div>
+                )}
+            />
+        );
     };
 
     render() {
-        const autoResponderSection = this.createAutoResponderSection();
-        const commentsSection = this.createCommentsSection();
-        const keysSection = this.createKeysSection();
         const pushNotificationSection = this.createPushNotificationSection();
-        const enableEmailProp = this.state.enableEmail === 'true';
+        const keywordsWithNotificationSection = this.createKeywordsWithNotificationSection();
+        const keywordsWithHighlightSection = this.createKeywordsWithHighlightSection();
+        const commentsSection = this.createCommentsSection();
+        const autoResponderSection = this.createAutoResponderSection();
 
         return (
             <div id='notificationSettings'>
@@ -1064,7 +1142,7 @@ export default class NotificationsTab extends React.PureComponent<Props, State> 
                     <EmailNotificationSetting
                         activeSection={this.props.activeSection}
                         updateSection={this.handleUpdateSection}
-                        enableEmail={enableEmailProp}
+                        enableEmail={this.state.enableEmail === 'true'}
                         onSubmit={this.handleSubmit}
                         onCancel={this.handleCancel}
                         onChange={this.handleEmailRadio}
@@ -1077,7 +1155,9 @@ export default class NotificationsTab extends React.PureComponent<Props, State> 
                     <div className='divider-light'/>
                     {pushNotificationSection}
                     <div className='divider-light'/>
-                    {keysSection}
+                    {keywordsWithNotificationSection}
+                    <div className='divider-light'/>
+                    {keywordsWithHighlightSection}
                     <div className='divider-light'/>
                     {!this.props.isCollapsedThreadsEnabled && (
                         <>
@@ -1085,7 +1165,9 @@ export default class NotificationsTab extends React.PureComponent<Props, State> 
                             <div className='divider-light'/>
                         </>
                     )}
-                    {autoResponderSection}
+                    {this.props.enableAutoResponder && (
+                        autoResponderSection
+                    )}
                     <div className='divider-dark'/>
                 </div>
             </div>
@@ -1093,3 +1175,5 @@ export default class NotificationsTab extends React.PureComponent<Props, State> 
         );
     }
 }
+
+export default injectIntl(NotificationsTab);
