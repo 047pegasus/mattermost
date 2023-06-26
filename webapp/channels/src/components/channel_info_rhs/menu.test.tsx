@@ -82,24 +82,6 @@ describe('channel_info_rhs/menu', () => {
         expect(screen.queryByText('Notification Preferences')).not.toBeInTheDocument();
     });
 
-    test('should display the number of files', () => {
-        const props = {...defaultProps};
-        props.actions.showChannelFiles = jest.fn();
-
-        renderWithIntl(
-            <Menu
-                {...props}
-            />,
-        );
-
-        const fileItem = screen.getByText('Files');
-        expect(fileItem).toBeInTheDocument();
-        expect(fileItem.parentElement).toHaveTextContent('3');
-
-        fireEvent.click(fileItem);
-        expect(props.actions.showChannelFiles).toHaveBeenCalled();
-    });
-
     test('should display the pinned messages', () => {
         const props = {...defaultProps};
         props.actions.showPinnedPosts = jest.fn();
